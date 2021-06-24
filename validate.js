@@ -1,10 +1,10 @@
 const cloneDeep = require('lodash/cloneDeep');
 
 const YMLToken = {
-  STRLIT: 0x0,
-  START_BLOCK: 0x1,
-  END_BLOCK: 0x2,
-  NUMLIT: 0x3,
+  STRLIT: 0,
+  START_BLOCK: 1,
+  END_BLOCK: 2,
+  NUMLIT: 3,
 };
 
 const BLOCKKIND_UNKNOWN = 0x0;
@@ -27,8 +27,11 @@ const errMessageFriendlyTokType = (tokType) => {
 };
 
 const VT = {
-  STRLIT_ONE_OF: 0x0,
-  BLOCK: 0x1,
+  STRLIT_ONE_OF: 0,
+  BLOCK: 1,
+  STRLIT: 2,
+  NUMLIT: 3,
+  NUMLIT_ONE_OF: 4,
 };
 
 // Validate given YML text using the provided configuration object
@@ -313,7 +316,7 @@ const validateYaml = (userConfig, text) => {
     let blockKind = BLOCKKIND_UNKNOWN;
     let currArrayKeyPairObj = null;
 
-    const validateAttr = (attrName, attrValue, line, col) => {
+    const validateAttr = (attrName, attrValue, isBlockValue, line, col) => {
       const vscope = curr_validation_scope;
       if (vscope === null) return true;
       switch (blockKind) {
@@ -340,7 +343,36 @@ const validateYaml = (userConfig, text) => {
           // check value
           switch (vinfo.type) {
             case VT.STRLIT_ONE_OF: {
-              if (!vinfo.values.includes(attrValue)) {
+              if (attrValue.type !== YMLToken.STRLIT) {
+                emitFormatError(
+                  { line, col },
+                  `Only string literals allowed`,
+                );
+              } else if (!vinfo.values.includes(attrValue.value)) {
+                const allowedValues = vinfo.values.join(', ');
+                emitFormatError(
+                  { line, col },
+                  `Only following values are allowed: ${allowedValues}`,
+                );
+              }
+              break;
+            }
+            case VT.STRLIT: {
+              if (attrValue.type !== YMLToken.STRLIT) {
+                emitFormatError({ line, col }, `${attrName} should be a string literal`);
+              }
+              break;
+            }
+            case VT.NUMLIT: {
+              if (attrValue.type !== YMLToken.NUMLIT) {
+                emitFormatError({ line, col }, `${attrName} should be a number literal`);
+              }
+              break;
+            }
+            case VT.NUMLIT_ONE_OF: {
+              if (attrValue.type !== YMLToken.NUMLIT) {
+                emitFormatError({ line, col }, `${attrName} should be a number literal`);
+              } else if (!vinfo.values.includes(attrValue.value)) {
                 const allowedValues = vinfo.values.join(', ');
                 emitFormatError(
                   { line, col },
@@ -369,7 +401,7 @@ const validateYaml = (userConfig, text) => {
         case BLOCKKIND_ARRAY: {
           // TODO: Maybe provide a single error message for the current attribute
           // line&column instead of a different warning for each list entry
-          if (!vscope.allow_list_values) {
+          if (!vscope.allowListValues) {
             emitFormatError({ line, col }, 'Array values are not allowed here');
           }
           // TODO: Check list entries
@@ -487,9 +519,11 @@ const validateYaml = (userConfig, text) => {
           // if there are spaces then consume them
           consumeToken(' ');
           // append key/pair value to the current context
-          const appendPair = (key, value) => {
+          const appendPair = (key, value, isBlockValue=false, line, col) => {
+            // if non-block value, token instance is passed
+            const assignValue = isBlockValue ? value : value.value;
             if (blockKind === BLOCKKIND_MAPPING) {
-              blockValue[key] = value;
+              blockValue[key] = assignValue;
             } else if (blockKind === BLOCKKIND_ARRAY) {
               // this is a key value pair so append a new object or
               // update current key/value pair object in the array if
@@ -498,12 +532,12 @@ const validateYaml = (userConfig, text) => {
                 blockValue.push({});
                 currArrayKeyPairObj = blockValue[blockValue.length - 1];
               }
-              currArrayKeyPairObj[key] = value;
+              currArrayKeyPairObj[key] = assignValue;
             } else {
               UNREACHABLE();
               return false;
             }
-            if (!validateAttr(key, value, attrName.line, attrName.col)) {
+            if (!validateAttr(key, value, isBlockValue, attrName.line, attrName.col)) {
               return false;
             }
             return true;
@@ -513,7 +547,8 @@ const validateYaml = (userConfig, text) => {
           if (strlitValue) {
             const p = appendPair(
               attrName.value,
-              strlitValue.value,
+              strlitValue,
+              false,
               attrName.line,
               attrName.col,
             );
@@ -528,7 +563,8 @@ const validateYaml = (userConfig, text) => {
           if (numlitValue) {
             const p = appendPair(
               attrName.value,
-              numlitValue.value,
+              numlitValue,
+              false,
               attrName.line,
               attrName.col,
             );
@@ -556,7 +592,10 @@ const validateYaml = (userConfig, text) => {
                 ? formatValidation.children[attrName.value] || null
                 : null;
             const blockParseRes = parseBlock(nextValidationScope, false);
-            const p = appendPair(attrName.value, blockParseRes, attrName.line, attrName.col);
+            const p = appendPair(
+              attrName.value, blockParseRes,
+              true,
+              attrName.line, attrName.col);
             if (!p) break;
           }
           break;
@@ -580,4 +619,6 @@ const validateYaml = (userConfig, text) => {
   return annotations;
 };
 
-module.exports = { validateYaml, VT };
+const validateWith = (userConfig) => (text) => validateYaml(userConfig, text);
+
+module.exports = { validateYaml, validateWith, VT };

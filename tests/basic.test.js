@@ -70,7 +70,7 @@ test("embedded simple value mismatch", () => {
       foo: {
         type: VT.BLOCK,
         children: {
-          bar: { type: VT.STRLIT_ONE_OF, values: [123] },
+          bar: { type: VT.NUMLIT_ONE_OF, values: [123] },
         },
       },
     },
@@ -103,6 +103,86 @@ foo: var
       column: 1,
       row: 1,
       text: `Format Error: Only following values are allowed: bar`,
+      type: "error",
+    },
+  ]);
+});
+
+test("STRLIT works properly", () => {
+  const C = {
+    children: {
+      foo: { type: VT.STRLIT },
+    },
+  };
+  const yaml = `
+foo: anything
+`;
+  expect(validateYaml(C, yaml)).toEqual([]);
+  const yaml2 = `
+foo: 123
+`;
+  expect(validateYaml(C, yaml2)).toEqual([
+    {
+      column: 1,
+      row: 1,
+      text: `Format Error: foo should be a string literal`,
+      type: "error",
+    },
+  ]);
+});
+
+test("NUMLIT works properly", () => {
+  const C = {
+    children: {
+      foo: { type: VT.NUMLIT },
+    },
+  };
+  const yaml = `
+foo: 123
+`;
+  expect(validateYaml(C, yaml)).toEqual([]);
+  const yaml2 = `
+foo: anything
+`;
+  expect(validateYaml(C, yaml2)).toEqual([
+    {
+      column: 1,
+      row: 1,
+      text: `Format Error: foo should be a number literal`,
+      type: "error",
+    },
+  ]);
+});
+
+test("NUMLIT_ONE_OF works properly", () => {
+  const C = {
+    children: {
+      foo: { type: VT.NUMLIT_ONE_OF, values: [43, 123, 555] },
+    },
+  };
+  const yaml = `
+foo: 555
+`;
+  expect(validateYaml(C, yaml)).toEqual([]);
+  const yaml2 = `
+foo: 2893
+`;
+  expect(validateYaml(C, yaml2)).toEqual([
+    {
+      column: 1,
+      row: 1,
+      text: `Format Error: Only following values are allowed: 43, 123, 555`,
+      type: "error",
+    },
+  ]);
+  const yaml3 = `
+foo: hello
+`;
+  expect(validateYaml(C, yaml3)).toEqual([
+    {
+      column: 1,
+      row: 1,
+      text: `Format Error: foo should be a number literal`,
       type: "error",
     },
   ]);
