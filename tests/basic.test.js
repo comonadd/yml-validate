@@ -124,6 +124,10 @@ test("STRLIT works properly", () => {
 foo: anything
 `;
   expect(v(yaml)).toEqual([]);
+  const yaml1 = `
+foo: "anything"
+`;
+  expect(v(yaml1)).toEqual([]);
   const yaml2 = `
 foo: 123
 `;
@@ -156,6 +160,21 @@ foo: anything
       column: 1,
       row: 1,
       text: `Format Error: foo should be a number literal`,
+      type: "error",
+    },
+  ]);
+  const yaml3 = `
+foo: 123.5
+`;
+  expect(v(yaml3)).toEqual([]);
+  const yaml4 = `
+foo: 123.5.3
+`;
+  expect(v(yaml4)).toEqual([
+    {
+      row: 1,
+      column: 4,
+      text: `Invalid number literal "123.5.3"`,
       type: "error",
     },
   ]);
