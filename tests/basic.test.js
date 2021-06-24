@@ -1,4 +1,4 @@
-const { validateYaml, VT } = require("../validate");
+const { validateYaml, validateWith, VT } = require("../validate");
 
 test("validates an empty file as having no errors", () => {
   expect(validateYaml({}, "")).toEqual([]);
@@ -21,10 +21,11 @@ test("validates a simple yaml file containing one key-value pair properly", () =
       foo: { type: VT.STRLIT_ONE_OF, values: ["bar"] },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo: bar
 `;
-  expect(validateYaml(C, yaml)).toEqual([]);
+  expect(v(yaml)).toEqual([]);
 });
 
 test("non-existent key", () => {
@@ -33,10 +34,11 @@ test("non-existent key", () => {
       bar: { type: VT.STRLIT_ONE_OF, values: ["bar"] },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo: bar
 `;
-  expect(validateYaml(C, yaml)).toEqual([
+  expect(v(yaml)).toEqual([
     {
       column: 1,
       row: 1,
@@ -57,11 +59,12 @@ test("embedded simple", () => {
       },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo:
   bar: var
 `;
-  expect(validateYaml(C, yaml)).toEqual([]);
+  expect(v(yaml)).toEqual([]);
 });
 
 test("embedded simple value mismatch", () => {
@@ -75,11 +78,12 @@ test("embedded simple value mismatch", () => {
       },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo:
   bar: 543
 `;
-  expect(validateYaml(C, yaml)).toEqual([
+  expect(v(yaml)).toEqual([
     {
       column: 2,
       row: 2,
@@ -95,10 +99,11 @@ test("non-existent key value STRLIT_ONE_OF", () => {
       foo: { type: VT.STRLIT_ONE_OF, values: ["bar"] },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo: var
 `;
-  expect(validateYaml(C, yaml)).toEqual([
+  expect(v(yaml)).toEqual([
     {
       column: 1,
       row: 1,
@@ -114,14 +119,15 @@ test("STRLIT works properly", () => {
       foo: { type: VT.STRLIT },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo: anything
 `;
-  expect(validateYaml(C, yaml)).toEqual([]);
+  expect(v(yaml)).toEqual([]);
   const yaml2 = `
 foo: 123
 `;
-  expect(validateYaml(C, yaml2)).toEqual([
+  expect(v(yaml2)).toEqual([
     {
       column: 1,
       row: 1,
@@ -137,14 +143,15 @@ test("NUMLIT works properly", () => {
       foo: { type: VT.NUMLIT },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo: 123
 `;
-  expect(validateYaml(C, yaml)).toEqual([]);
+  expect(v(yaml)).toEqual([]);
   const yaml2 = `
 foo: anything
 `;
-  expect(validateYaml(C, yaml2)).toEqual([
+  expect(v(yaml2)).toEqual([
     {
       column: 1,
       row: 1,
@@ -160,14 +167,15 @@ test("NUMLIT_ONE_OF works properly", () => {
       foo: { type: VT.NUMLIT_ONE_OF, values: [43, 123, 555] },
     },
   };
+  const v = validateWith(C);
   const yaml = `
 foo: 555
 `;
-  expect(validateYaml(C, yaml)).toEqual([]);
+  expect(v(yaml)).toEqual([]);
   const yaml2 = `
 foo: 2893
 `;
-  expect(validateYaml(C, yaml2)).toEqual([
+  expect(v(yaml2)).toEqual([
     {
       column: 1,
       row: 1,
@@ -178,7 +186,7 @@ foo: 2893
   const yaml3 = `
 foo: hello
 `;
-  expect(validateYaml(C, yaml3)).toEqual([
+  expect(v(yaml3)).toEqual([
     {
       column: 1,
       row: 1,
