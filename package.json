@@ -1,6 +1,6 @@
 {
   "name": "yml-validate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "YML Validator",
   "main": "build/validate.js",
   "browser": "build/validate.min.js",
@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/dmitryguzeev/yml-validate#readme",
   "dependencies": {
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "jest": "^27.0.5",
