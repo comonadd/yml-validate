@@ -2,8 +2,12 @@
   "name": "yml-validate",
   "version": "1.0.0",
   "description": "YML Validator",
-  "main": "validate.js",
+  "main": "build/validate.js",
+  "browser": "build/validate.min.js",
+  "module": "build/validate.module.js",
   "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
     "test": "jest"
   },
   "repository": {
@@ -23,9 +27,13 @@
   },
   "homepage": "https://github.com/dmitryguzeev/yml-validate#readme",
   "dependencies": {
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
   },
   "devDependencies": {
-    "jest": "^27.0.5"
+    "jest": "^27.0.5",
+    "rollup-plugin-terser": "^7.0.2",
+    "@rollup/plugin-commonjs": "^19.0.0",
+    "@rollup/plugin-node-resolve": "^13.0.0",
+    "rollup": "^2.52.2"
   }
 }
