@@ -214,3 +214,38 @@ foo: hello
     },
   ]);
 });
+
+test("required flag works properly", () => {
+  const C = {
+    children: {
+      foo: { type: VT.NUMLIT_ONE_OF, values: [43, 123, 555], required: true },
+      bar: { type: VT.NUMLIT_ONE_OF, values: [43, 123, 555], required: false },
+    },
+  };
+  const v = validateWith(C);
+  const yaml = `
+foo: 555
+`;
+  expect(v(yaml)).toEqual([]);
+  const yaml2 = `
+`;
+  expect(v(yaml2)).toEqual([
+    {
+      column: 1,
+      row: 1,
+      text: `Option foo is required`,
+      type: "error",
+    },
+  ]);
+  const yaml3 = `
+foo: hello
+`;
+  expect(v(yaml3)).toEqual([
+    {
+      column: 1,
+      row: 1,
+      text: `Format Error: foo should be a number literal`,
+      type: "error",
+    },
+  ]);
+});
